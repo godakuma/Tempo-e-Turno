@@ -7,7 +7,7 @@
     "permissions": [
         "https://mestragem-3det-alpha-default-rtdb.firebaseio.com/*"
     ],
-    "url": "https://seu-projeto.vercel.app",
+    "url": "https://tempo-e-turno.vercel.app/",
     "style": {
         "width": 400,
         "height": 500
