@@ -5,7 +5,7 @@
     "author": "Seu Nome",
     "icon": "⏰",
     "permissions": [
-        "https://mestragem-3det-alpha-default-rtdb.firebaseio.com/*"
+        "https://tempo-e-turno-default-rtdb.firebaseio.com/*"
     ],
     "url": "https://tempo-e-turno.vercel.app/",
     "style": {
