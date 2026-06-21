@@ -1,0 +1,15 @@
+{
+    "name": "Contador de Tempo RPG",
+    "version": "1.0.0",
+    "description": "Sistema de contagem de tempo para mesas de RPG com sincronização Firebase",
+    "author": "Seu Nome",
+    "icon": "⏰",
+    "permissions": [
+        "https://mestragem-3det-alpha-default-rtdb.firebaseio.com/*"
+    ],
+    "url": "https://seu-projeto.vercel.app",
+    "style": {
+        "width": 400,
+        "height": 500
+    }
+}

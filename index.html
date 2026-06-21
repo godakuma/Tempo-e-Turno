@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⏰ Contador de Tempo - Mesa de RPG</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(20,20,40,0.95);
+            border-radius: 30px;
+            border: 2px solid #d4af37;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+        
+        /* ===== OVERLAY DE SENHA ===== */
+        .senha-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .senha-overlay.ativo {
+            display: flex;
+        }
+        .senha-overlay .senha-card {
+            background: #1a1a2e;
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 2px solid #d4af37;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+        .senha-overlay .senha-card .lock-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .senha-overlay .senha-card h3 {
+            color: #d4af37;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        .senha-overlay .senha-card p {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .senha-overlay .senha-card input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            background: #0a0a1a;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+        .senha-overlay .senha-card input:focus {
+            border-color: #d4af37;
+            outline: none;
+        }
+        .senha-overlay .senha-card .btn-senha {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .senha-overlay .senha-card .btn-senha.entrar {
+            background: #8a6a35;
+            color: white;
+        }
+        .senha-overlay .senha-card .btn-senha.entrar:hover { background: #aa8a55; }
+        .senha-overlay .senha-card .btn-senha.cancelar {
+            background: #444;
+            color: white;
+        }
+        .senha-overlay .senha-card .btn-senha.cancelar:hover { background: #666; }
+        .senha-overlay .senha-card .senha-erro {
+            color: #ff6b6b;
+            font-size: 13px;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+        
+        /* ===== STATUS BAR ===== */
+        .status-bar {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border: 1px solid #333;
+        }
+        .status-bar .mode {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-badge.mestre {
+            background: #8a6a35;
+            color: white;
+        }
+        .status-badge.jogador {
+            background: #2a5a5a;
+            color: white;
+        }
+        .btn-mestre {
+            background: #8a6a35;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        .btn-mestre:hover { background: #aa8a55; }
+        .btn-sair {
+            background: #772222;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        .btn-sair:hover { background: #992222; }
+        
+        /* ===== DISPLAY PRINCIPAL ===== */
+        .display-principal {
+            background: #0a0a1a;
+            border-radius: 25px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid #333;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .display-principal::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(212,175,55,0.03) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .momento-dia {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        .momento-dia .icone {
+            font-size: 48px;
+            animation: pulse-icon 2s ease-in-out infinite;
+        }
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .momento-dia .nome {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+        .momento-dia .nome.manha { color: #f9d71c; }
+        .momento-dia .nome.tarde { color: #f5a623; }
+        .momento-dia .nome.noite { color: #6c8cff; }
+        
+        /* ===== TEMPO DISPLAY ===== */
+        .tempo-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 0;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+        }
+        .tempo-display .campo-tempo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .tempo-display .campo-tempo .label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .tempo-display .campo-tempo .valor {
+            font-size: 56px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #d4af37;
+            min-width: 70px;
+            padding: 8px 5px;
+            background: #1a1a2e;
+            border-radius: 10px;
+            border: 2px solid #333;
+            text-align: center;
+        }
+        .tempo-display .campo-tempo .valor.jogador {
+            border-color: #2a5a5a;
+            color: #6c8cff;
+        }
+        .tempo-display .campo-tempo input {
+            width: 80px;
+            padding: 8px 5px;
+            background: #1a1a2e;
+            color: #d4af37;
+            border: 2px solid #333;
+            border-radius: 10px;
+            font-size: 42px;
+            font-weight: bold;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s;
+            display: none;
+        }
+        .tempo-display .campo-tempo input:focus {
+            border-color: #d4af37;
+            outline: none;
+        }
+        .tempo-display .campo-tempo input.ativo {
+            display: block;
+        }
+        .tempo-display .campo-tempo .valor.oculto {
+            display: none;
+        }
+        .tempo-display .separador {
+            font-size: 42px;
+            color: #555;
+            font-weight: bold;
+            padding-bottom: 20px;
+        }
+        
+        /* ===== CONTROLES (apenas Mestre) ===== */
+        .controles-tempo {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        .controle-grupo {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 12px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+        .controle-grupo .label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .controle-grupo .botoes {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        .controle-grupo .botoes button {
+            padding: 6px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            min-width: 50px;
+        }
+        .controle-grupo .botoes button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .btn-mais {
+            background: #2a6a3a;
+            color: white;
+        }
+        .btn-mais:hover:not(:disabled) { background: #3a8a4a; }
+        .btn-menos {
+            background: #6a2a2a;
+            color: white;
+        }
+        .btn-menos:hover:not(:disabled) { background: #8a3a3a; }
+        
+        .controles-gerais {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-play-pause {
+            padding: 12px 35px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 130px;
+        }
+        .btn-play-pause:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .btn-play {
+            background: #2a6a3a;
+            color: white;
+        }
+        .btn-play:hover:not(:disabled) { background: #3a8a4a; }
+        .btn-pause {
+            background: #8a6a2a;
+            color: white;
+        }
+        .btn-pause:hover:not(:disabled) { background: #aa8a3a; }
+        
+        .btn-reset-tempo {
+            background: #6a2a2a;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-reset-tempo:hover:not(:disabled) { background: #8a3a3a; }
+        .btn-reset-tempo:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .mestre-only {
+            display: none;
+        }
+        .mestre-only.ativo {
+            display: block;
+        }
+        
+        /* ===== PROGRESSO ===== */
+        .progresso-dia {
+            margin-top: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .progresso-dia .barra {
+            width: 100%;
+            height: 8px;
+            background: #1a1a2e;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        .progresso-dia .barra .preenchimento {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #f9d71c, #f5a623, #6c8cff);
+            width: 0%;
+        }
+        .progresso-dia .labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* ===== INFO ===== */
+        .info-extra {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .info-card {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .info-card .label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .info-card .valor {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d4af37;
+            margin-top: 3px;
+        }
+        
+        /* ===== LOG ===== */
+        .chat-container {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #333;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .chat-container .chat-titulo {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 6px;
+        }
+        .chat-mensagem {
+            font-size: 12px;
+            padding: 4px 0;
+            color: #ccc;
+            border-bottom: 1px solid #111;
+        }
+        .chat-mensagem .hora {
+            color: #666;
+            font-size: 10px;
+            margin-right: 8px;
+        }
+        .chat-mensagem .mestre {
+            color: #f5a623;
+            font-weight: bold;
+        }
+        .chat-mensagem .sistema {
+            color: #d4af37;
+            font-weight: bold;
+        }
+        .empty-chat {
+            text-align: center;
+            color: #666;
+            padding: 15px;
+            font-size: 12px;
+        }
+        
+        /* Scrollbar */
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-container::-webkit-scrollbar-track {
+            background: #0a0a1a;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #d4af37;
+            border-radius: 10px;
+        }
+        
+        /* ===== RESPONSIVO ===== */
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .tempo-display .campo-tempo .valor { font-size: 36px; min-width: 50px; }
+            .tempo-display .campo-tempo input { width: 60px; font-size: 28px; }
+            .tempo-display .separador { font-size: 28px; padding-bottom: 15px; }
+            .momento-dia .icone { font-size: 32px; }
+            .momento-dia .nome { font-size: 20px; }
+            .controles-tempo { grid-template-columns: 1fr; gap: 10px; }
+            .info-extra { grid-template-columns: repeat(2, 1fr); }
+            .senha-overlay .senha-card { padding: 25px; margin: 15px; }
+        }
+        @media (max-width: 480px) {
+            .tempo-display .campo-tempo .valor { font-size: 28px; min-width: 40px; }
+            .tempo-display .campo-tempo input { width: 50px; font-size: 22px; padding: 5px; }
+            .tempo-display .separador { font-size: 22px; padding-bottom: 10px; }
+            .controles-gerais { flex-direction: column; }
+            .status-bar { flex-direction: column; align-items: stretch; text-align: center; }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: 1px solid #d4af37;
+            z-index: 9999;
+            font-size: 14px;
+            animation: fadeInOut 2.5s ease forwards;
+            pointer-events: none;
+            max-width: 90%;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== OVERLAY DE SENHA ===== -->
+<div class="senha-overlay" id="senhaOverlay">
+    <div class="senha-card">
+        <div class="lock-icon">🔐</div>
+        <h3>Modo Mestre</h3>
+        <p>Digite a senha para controlar o tempo</p>
+        <input type="password" id="senhaMestreInput" placeholder="Senha do Mestre" autocomplete="off">
+        <button class="btn-senha entrar" id="btnConfirmarSenha">👑 Ativar Modo Mestre</button>
+        <button class="btn-senha cancelar" id="btnCancelarSenha">✕ Cancelar</button>
+        <div id="senhaErro" class="senha-erro"></div>
+    </div>
+</div>
+
+<div class="container" id="appContainer">
+    
+    <!-- ===== TELA PRINCIPAL ===== -->
+    <div id="mainScreen">
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="mode">
+                <span id="statusBadge" class="status-badge jogador">🎲 Jogador</span>
+                <span style="color: #aaa; font-size: 14px;">Visualizando o tempo da mesa</span>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-mestre" id="btnModoMestre">👑 Modo Mestre</button>
+                <button class="btn-sair" id="btnSair">🚪 Sair</button>
+            </div>
+        </div>
+        
+        <!-- Display Principal -->
+        <div class="display-principal" id="displayPrincipal">
+            <div class="momento-dia">
+                <span class="icone" id="iconeMomento">🌅</span>
+                <span class="nome" id="nomeMomento">Manhã</span>
+            </div>
+            
+            <!-- ===== TEMPO DISPLAY ===== -->
+            <div class="tempo-display" id="tempoDisplay">
+                <div class="campo-tempo">
+                    <span class="valor" id="displayHoras">00</span>
+                    <input type="text" id="inputHoras" maxlength="2" value="00" inputmode="numeric" pattern="[0-9]*">
+                    <span class="label">Horas</span>
+                </div>
+                <span class="separador">:</span>
+                <div class="campo-tempo">
+                    <span class="valor" id="displayMinutos">00</span>
+                    <input type="text" id="inputMinutos" maxlength="2" value="00" inputmode="numeric" pattern="[0-9]*">
+                    <span class="label">Minutos</span>
+                </div>
+                <span class="separador">:</span>
+                <div class="campo-tempo">
+                    <span class="valor" id="displaySegundos">00</span>
+                    <input type="text" id="inputSegundos" maxlength="2" value="00" inputmode="numeric" pattern="[0-9]*">
+                    <span class="label">Segundos</span>
+                </div>
+            </div>
+            
+            <!-- ===== CONTROLES (apenas Mestre) ===== -->
+            <div class="mestre-only" id="controlesMestre">
+                <div class="controles-tempo" id="controlesTempo">
+                    <div class="controle-grupo">
+                        <div class="label">⏰ Horas</div>
+                        <div class="botoes">
+                            <button class="btn-menos" id="btnHoraMenos">−</button>
+                            <button class="btn-mais" id="btnHoraMais">+</button>
+                        </div>
+                    </div>
+                    <div class="controle-grupo">
+                        <div class="label">⏱️ Minutos</div>
+                        <div class="botoes">
+                            <button class="btn-menos" id="btnMinutoMenos">−</button>
+                            <button class="btn-mais" id="btnMinutoMais">+</button>
+                        </div>
+                    </div>
+                    <div class="controle-grupo">
+                        <div class="label">⏲️ Segundos</div>
+                        <div class="botoes">
+                            <button class="btn-menos" id="btnSegundoMenos">−</button>
+                            <button class="btn-mais" id="btnSegundoMais">+</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controles-gerais">
+                    <button class="btn-play-pause btn-play" id="btnPlayPause">▶ Play</button>
+                    <button class="btn-reset-tempo" id="btnResetTempo">⏹ Reset</button>
+                </div>
+            </div>
+            
+            <!-- Mensagem para jogador -->
+            <div id="mensagemJogador" style="margin-top: 15px; color: #666; font-size: 12px;">
+                🎲 Você está visualizando o tempo da mesa
+            </div>
+            
+            <!-- Progresso do Dia -->
+            <div class="progresso-dia">
+                <div class="barra">
+                    <div class="preenchimento" id="progressoDia"></div>
+                </div>
+                <div class="labels">
+                    <span>🌅 Manhã</span>
+                    <span>🌤️ Tarde</span>
+                    <span>🌙 Noite</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Extra -->
+        <div class="info-extra">
+            <div class="info-card">
+                <div class="label">⏱️ Tempo Total</div>
+                <div class="valor" id="tempoTotal">00:00:00</div>
+            </div>
+            <div class="info-card">
+                <div class="label">📅 Dia</div>
+                <div class="valor" id="diaAtual">Dia 1</div>
+            </div>
+            <div class="info-card">
+                <div class="label">🔄 Status</div>
+                <div class="valor" id="statusTempo">⏸️ Pausado</div>
+            </div>
+        </div>
+        
+        <!-- Log do Sistema -->
+        <div class="chat-container" id="chatContainer">
+            <div class="chat-titulo">📜 Log do Tempo</div>
+            <div id="chatMensagens">
+                <div class="empty-chat">📢 Nenhuma mensagem ainda.</div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, push, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+    
+    const firebaseConfig = {
+        apiKey: "AIzaSyDLzqmIVK3AyExjc4hr6Jht4tLUnbHkCoE",
+        authDomain: "mestragem-3det-alpha.firebaseapp.com",
+        databaseURL: "https://mestragem-3det-alpha-default-rtdb.firebaseio.com",
+        projectId: "mestragem-3det-alpha",
+        storageBucket: "mestragem-3det-alpha.firebasestorage.app",
+        messagingSenderId: "290185604308",
+        appId: "1:290185604308:web:4d9ab0d246569a72629f41",
+        measurementId: "G-PRJZGM2E1G"
+    };
+
+    const SENHA_MESTRE = "mestre123@#";
+    
+    let app = initializeApp(firebaseConfig);
+    let db = getDatabase(app);
+    
+    // ===== VARIÁVEIS GLOBAIS =====
+    let isMaster = false;
+    let tempo = { horas: 0, minutos: 0, segundos: 0 };
+    let totalSegundos = 0;
+    let rodando = false;
+    let intervalo = null;
+    let diaAtual = 1;
+    let tempoTotalSegundos = 0;
+    let atualizandoInputs = false;
+    
+    // ===== ELEMENTOS DOM =====
+    const mainScreen = document.getElementById('mainScreen');
+    const statusBadge = document.getElementById('statusBadge');
+    const btnModoMestre = document.getElementById('btnModoMestre');
+    const btnSair = document.getElementById('btnSair');
+    
+    const displayHoras = document.getElementById('displayHoras');
+    const displayMinutos = document.getElementById('displayMinutos');
+    const displaySegundos = document.getElementById('displaySegundos');
+    const inputHoras = document.getElementById('inputHoras');
+    const inputMinutos = document.getElementById('inputMinutos');
+    const inputSegundos = document.getElementById('inputSegundos');
+    
+    const iconeMomento = document.getElementById('iconeMomento');
+    const nomeMomento = document.getElementById('nomeMomento');
+    const progressoDia = document.getElementById('progressoDia');
+    const tempoTotalDisplay = document.getElementById('tempoTotal');
+    const diaAtualDisplay = document.getElementById('diaAtual');
+    const statusTempo = document.getElementById('statusTempo');
+    const chatMensagens = document.getElementById('chatMensagens');
+    const mensagemJogador = document.getElementById('mensagemJogador');
+    const controlesMestre = document.getElementById('controlesMestre');
+    
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const btnResetTempo = document.getElementById('btnResetTempo');
+    const btnHoraMais = document.getElementById('btnHoraMais');
+    const btnHoraMenos = document.getElementById('btnHoraMenos');
+    const btnMinutoMais = document.getElementById('btnMinutoMais');
+    const btnMinutoMenos = document.getElementById('btnMinutoMenos');
+    const btnSegundoMais = document.getElementById('btnSegundoMais');
+    const btnSegundoMenos = document.getElementById('btnSegundoMenos');
+    
+    // ===== OVERLAY DE SENHA =====
+    const senhaOverlay = document.getElementById('senhaOverlay');
+    const senhaMestreInput = document.getElementById('senhaMestreInput');
+    const btnConfirmarSenha = document.getElementById('btnConfirmarSenha');
+    const btnCancelarSenha = document.getElementById('btnCancelarSenha');
+    const senhaErro = document.getElementById('senhaErro');
+    
+    // ===== FUNÇÕES DE UTILIDADE =====
+    function mostrarToast(mensagem, cor = '#d4af37') {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.borderColor = cor;
+        toast.textContent = mensagem;
+        document.body.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+    }
+    
+    function formatarTempo(h, m, s) {
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    
+    function formatarTempoTotal(segundos) {
+        const h = Math.floor(segundos / 3600);
+        const m = Math.floor((segundos % 3600) / 60);
+        const s = segundos % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    
+    function getMomentoDia(horas) {
+        if (horas >= 6 && horas < 12) return { nome: 'Manhã', icone: '🌅', class: 'manha' };
+        if (horas >= 12 && horas < 18) return { nome: 'Tarde', icone: '🌤️', class: 'tarde' };
+        return { nome: 'Noite', icone: '🌙', class: 'noite' };
+    }
+    
+    function validarNumero(valor, min, max) {
+        let num = parseInt(valor);
+        if (isNaN(num)) return min;
+        if (num < min) return min;
+        if (num > max) return max;
+        return num;
+    }
+    
+    function atualizarDisplay() {
+        const momento = getMomentoDia(tempo.horas);
+        iconeMomento.textContent = momento.icone;
+        nomeMomento.textContent = momento.nome;
+        nomeMomento.className = `nome ${momento.class}`;
+        
+        // Atualiza os displays
+        displayHoras.textContent = String(tempo.horas).padStart(2, '0');
+        displayMinutos.textContent = String(tempo.minutos).padStart(2, '0');
+        displaySegundos.textContent = String(tempo.segundos).padStart(2, '0');
+        
+        // Atualiza os inputs (se estiver no modo mestre)
+        if (isMaster) {
+            atualizandoInputs = true;
+            inputHoras.value = String(tempo.horas).padStart(2, '0');
+            inputMinutos.value = String(tempo.minutos).padStart(2, '0');
+            inputSegundos.value = String(tempo.segundos).padStart(2, '0');
+            atualizandoInputs = false;
+        }
+        
+        const progresso = ((tempo.horas * 3600 + tempo.minutos * 60 + tempo.segundos) / 86400) * 100;
+        progressoDia.style.width = `${Math.min(progresso, 100)}%`;
+        
+        tempoTotalDisplay.textContent = formatarTempoTotal(tempoTotalSegundos);
+        diaAtualDisplay.textContent = `Dia ${diaAtual}`;
+        statusTempo.textContent = rodando ? '▶️ Rodando' : '⏸️ Pausado';
+        statusTempo.style.color = rodando ? '#4a8a4a' : '#d4af37';
+        
+        if (isMaster) {
+            if (rodando) {
+                btnPlayPause.textContent = '⏸ Pause';
+                btnPlayPause.className = 'btn-play-pause btn-pause';
+            } else {
+                btnPlayPause.textContent = '▶ Play';
+                btnPlayPause.className = 'btn-play-pause btn-play';
+            }
+        }
+    }
+    
+    function adicionarMensagem(texto, tipo = 'sistema') {
+        const hora = new Date().toLocaleTimeString();
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-mensagem';
+        const tipoClass = tipo === 'mestre' ? 'mestre' : 'sistema';
+        const nomeExibicao = tipo === 'mestre' ? '👑 Mestre' : '📢 Sistema';
+        msgDiv.innerHTML = `<span class="hora">${hora}</span><span class="${tipoClass}">${nomeExibicao}:</span> ${texto}`;
+        
+        const empty = chatMensagens.querySelector('.empty-chat');
+        if (empty) empty.remove();
+        
+        chatMensagens.appendChild(msgDiv);
+        chatMensagens.parentElement.scrollTop = chatMensagens.parentElement.scrollHeight;
+        
+        while (chatMensagens.children.length > 100) {
+            chatMensagens.removeChild(chatMensagens.firstChild);
+        }
+        
+        if (isMaster) {
+            const chatRef = ref(db, `tempo/chat`);
+            const newRef = push(chatRef);
+            set(newRef, {
+                texto: texto,
+                tipo: tipo,
+                timestamp: Date.now()
+            });
+        }
+    }
+    
+    // ===== CONTROLE DE TEMPO =====
+    function tick() {
+        tempo.segundos++;
+        totalSegundos++;
+        tempoTotalSegundos++;
+        
+        if (tempo.segundos >= 60) {
+            tempo.segundos = 0;
+            tempo.minutos++;
+        }
+        if (tempo.minutos >= 60) {
+            tempo.minutos = 0;
+            tempo.horas++;
+        }
+        if (tempo.horas >= 24) {
+            tempo.horas = 0;
+            diaAtual++;
+            adicionarMensagem(`🌅 Dia ${diaAtual} começou!`, 'sistema');
+        }
+        
+        atualizarDisplay();
+        salvarEstadoFirebase();
+    }
+    
+    function togglePlayPause() {
+        if (!isMaster) return;
+        
+        if (rodando) {
+            rodando = false;
+            clearInterval(intervalo);
+            intervalo = null;
+            adicionarMensagem('⏸️ Tempo pausado', 'sistema');
+            mostrarToast('⏸️ Tempo pausado', '#d4af37');
+        } else {
+            rodando = true;
+            intervalo = setInterval(tick, 1000);
+            adicionarMensagem('▶️ Tempo iniciado!', 'sistema');
+            mostrarToast('▶️ Tempo iniciado!', '#4a8a4a');
+        }
+        atualizarDisplay();
+        salvarEstadoFirebase();
+    }
+    
+    function resetarTempo() {
+        if (!isMaster) return;
+        if (!confirm('Tem certeza que deseja resetar o tempo para 00:00:00?')) return;
+        
+        rodando = false;
+        if (intervalo) {
+            clearInterval(intervalo);
+            intervalo = null;
+        }
+        tempo = { horas: 0, minutos: 0, segundos: 0 };
+        totalSegundos = 0;
+        diaAtual = 1;
+        tempoTotalSegundos = 0;
+        atualizarDisplay();
+        adicionarMensagem('⏹️ Tempo resetado para 00:00:00', 'sistema');
+        salvarEstadoFirebase();
+        mostrarToast('⏹️ Tempo resetado!', '#ff6b6b');
+    }
+    
+    function ajustarTempo(tipo, delta) {
+        if (!isMaster) return;
+        
+        switch(tipo) {
+            case 'horas':
+                tempo.horas = (tempo.horas + delta + 24) % 24;
+                break;
+            case 'minutos':
+                tempo.minutos = (tempo.minutos + delta + 60) % 60;
+                break;
+            case 'segundos':
+                tempo.segundos = (tempo.segundos + delta + 60) % 60;
+                break;
+        }
+        
+        atualizarDisplay();
+        salvarEstadoFirebase();
+        mostrarToast(`⏰ ${tipo}: ${delta > 0 ? '+' : ''}${delta}`, '#d4af37');
+    }
+    
+    // ===== AJUSTE VIA INPUTS (digitação direta) =====
+    function aplicarInputs() {
+        if (!isMaster || atualizandoInputs) return;
+        
+        let horas = parseInt(inputHoras.value) || 0;
+        let minutos = parseInt(inputMinutos.value) || 0;
+        let segundos = parseInt(inputSegundos.value) || 0;
+        
+        horas = Math.max(0, Math.min(23, horas));
+        minutos = Math.max(0, Math.min(59, minutos));
+        segundos = Math.max(0, Math.min(59, segundos));
+        
+        tempo.horas = horas;
+        tempo.minutos = minutos;
+        tempo.segundos = segundos;
+        
+        atualizarDisplay();
+        salvarEstadoFirebase();
+        adicionarMensagem(`⏰ Tempo ajustado para ${formatarTempo(horas, minutos, segundos)}`, 'mestre');
+        mostrarToast(`⏰ Tempo ajustado para ${formatarTempo(horas, minutos, segundos)}`, '#d4af37');
+    }
+    
+    function configurarInputs() {
+        [inputHoras, inputMinutos, inputSegundos].forEach(input => {
+            input.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 2) {
+                    this.value = this.value.slice(0, 2);
+                }
+                // Auto-avançar
+                if (this.value.length === 2) {
+                    if (this.id === 'inputHoras') {
+                        inputMinutos.focus();
+                    } else if (this.id === 'inputMinutos') {
+                        inputSegundos.focus();
+                    } else if (this.id === 'inputSegundos') {
+                        this.blur();
+                        aplicarInputs();
+                    }
+                }
+            });
+            
+            input.addEventListener('blur', function(e) {
+                if (this.value === '' || this.value === '0') {
+                    this.value = '00';
+                }
+                if (this.value.length === 1) {
+                    this.value = '0' + this.value;
+                }
+                aplicarInputs();
+            });
+            
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    this.blur();
+                }
+            });
+        });
+    }
+    
+    // ===== FIREBASE =====
+    async function salvarEstadoFirebase() {
+        if (!isMaster) return;
+        const estadoRef = ref(db, `tempo/estado`);
+        await set(estadoRef, {
+            horas: tempo.horas,
+            minutos: tempo.minutos,
+            segundos: tempo.segundos,
+            totalSegundos: totalSegundos,
+            diaAtual: diaAtual,
+            tempoTotal: tempoTotalSegundos,
+            rodando: rodando,
+            ultimaAtualizacao: serverTimestamp()
+        });
+    }
+    
+    function escutarEstadoTempo() {
+        const estadoRef = ref(db, `tempo/estado`);
+        onValue(estadoRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            
+            const novasHoras = data.horas || 0;
+            const novosMinutos = data.minutos || 0;
+            const novosSegundos = data.segundos || 0;
+            
+            if (tempo.horas !== novasHoras || tempo.minutos !== novosMinutos || tempo.segundos !== novosSegundos) {
+                tempo.horas = novasHoras;
+                tempo.minutos = novosMinutos;
+                tempo.segundos = novosSegundos;
+                totalSegundos = data.totalSegundos || 0;
+                diaAtual = data.diaAtual || 1;
+                tempoTotalSegundos = data.tempoTotal || 0;
+                atualizarDisplay();
+            }
+            
+            if (data.rodando !== undefined) {
+                if (data.rodando && !rodando && isMaster) {
+                    rodando = true;
+                    if (!intervalo) {
+                        intervalo = setInterval(tick, 1000);
+                    }
+                    atualizarDisplay();
+                } else if (!data.rodando && rodando) {
+                    rodando = false;
+                    if (intervalo) {
+                        clearInterval(intervalo);
+                        intervalo = null;
+                    }
+                    atualizarDisplay();
+                }
+            }
+        });
+    }
+    
+    function escutarChat() {
+        const chatRef = ref(db, `tempo/chat`);
+        onValue(chatRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            
+            const mensagens = Object.values(data);
+            if (mensagens.length === 0) return;
+            const ultima = mensagens[mensagens.length - 1];
+            
+            const msgs = chatMensagens.querySelectorAll('.chat-mensagem');
+            const ultimaMsg = msgs[msgs.length - 1];
+            if (ultimaMsg && ultimaMsg.textContent.includes(ultima.texto)) return;
+            
+            const hora = new Date(ultima.timestamp).toLocaleTimeString();
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-mensagem';
+            const tipoClass = ultima.tipo === 'mestre' ? 'mestre' : 'sistema';
+            const nomeExibicao = ultima.tipo === 'mestre' ? '👑 Mestre' : '📢 Sistema';
+            msgDiv.innerHTML = `<span class="hora">${hora}</span><span class="${tipoClass}">${nomeExibicao}:</span> ${ultima.texto}`;
+            
+            const empty = chatMensagens.querySelector('.empty-chat');
+            if (empty) empty.remove();
+            
+            chatMensagens.appendChild(msgDiv);
+            chatMensagens.parentElement.scrollTop = chatMensagens.parentElement.scrollHeight;
+            
+            while (chatMensagens.children.length > 100) {
+                chatMensagens.removeChild(chatMensagens.firstChild);
+            }
+        });
+    }
+    
+    // ===== MODO MESTRE =====
+    function ativarModoMestre() {
+        senhaOverlay.classList.add('ativo');
+        senhaMestreInput.value = '';
+        senhaErro.textContent = '';
+        senhaMestreInput.focus();
+    }
+    
+    function confirmarSenha() {
+        const senha = senhaMestreInput.value.trim();
+        if (!senha) {
+            senhaErro.textContent = '❌ Digite a senha do Mestre';
+            return;
+        }
+        
+        if (senha === SENHA_MESTRE) {
+            senhaErro.textContent = '';
+            senhaOverlay.classList.remove('ativo');
+            isMaster = true;
+            
+            statusBadge.textContent = '👑 Mestre';
+            statusBadge.className = 'status-badge mestre';
+            btnModoMestre.textContent = '👑 Mestre';
+            btnModoMestre.style.background = '#8a6a35';
+            
+            // Mostra controles
+            controlesMestre.classList.add('ativo');
+            mensagemJogador.style.display = 'none';
+            
+            // Mostra inputs e esconde displays
+            displayHoras.style.display = 'none';
+            displayMinutos.style.display = 'none';
+            displaySegundos.style.display = 'none';
+            inputHoras.classList.add('ativo');
+            inputMinutos.classList.add('ativo');
+            inputSegundos.classList.add('ativo');
+            
+            // Inicializa estado no Firebase
+            const estadoRef = ref(db, `tempo/estado`);
+            get(estadoRef).then((snapshot) => {
+                if (!snapshot.exists()) {
+                    set(estadoRef, {
+                        horas: 0, minutos: 0, segundos: 0,
+                        totalSegundos: 0, diaAtual: 1, tempoTotal: 0,
+                        rodando: false, ultimaAtualizacao: serverTimestamp()
+                    });
+                }
+                escutarEstadoTempo();
+            });
+            
+            escutarChat();
+            atualizarDisplay();
+            
+            adicionarMensagem('👑 Mestre ativou o controle do tempo!', 'sistema');
+            mostrarToast('✅ Modo Mestre ativado!', '#4a8a4a');
+        } else {
+            senhaErro.textContent = '❌ Senha incorreta! Tente novamente.';
+            senhaMestreInput.value = '';
+            senhaMestreInput.focus();
+            setTimeout(() => {
+                senhaErro.textContent = '';
+            }, 3000);
+        }
+    }
+    
+    function cancelarSenha() {
+        senhaOverlay.classList.remove('ativo');
+        senhaMestreInput.value = '';
+        senhaErro.textContent = '';
+    }
+    
+    function desativarModoMestre() {
+        if (!isMaster) return;
+        if (!confirm('Deseja sair do modo Mestre?')) return;
+        
+        isMaster = false;
+        
+        if (intervalo) {
+            clearInterval(intervalo);
+            intervalo = null;
+        }
+        rodando = false;
+        
+        statusBadge.textContent = '🎲 Jogador';
+        statusBadge.className = 'status-badge jogador';
+        btnModoMestre.textContent = '👑 Modo Mestre';
+        btnModoMestre.style.background = '#8a6a35';
+        
+        controlesMestre.classList.remove('ativo');
+        mensagemJogador.style.display = 'block';
+        
+        // Esconde inputs e mostra displays
+        displayHoras.style.display = 'block';
+        displayMinutos.style.display = 'block';
+        displaySegundos.style.display = 'block';
+        inputHoras.classList.remove('ativo');
+        inputMinutos.classList.remove('ativo');
+        inputSegundos.classList.remove('ativo');
+        
+        atualizarDisplay();
+        mostrarToast('👋 Modo Mestre desativado', '#d4af37');
+    }
+    
+    function sair() {
+        if (isMaster) {
+            if (!confirm('Sair do modo Mestre?')) return;
+            desativarModoMestre();
+        } else {
+            if (!confirm('Deseja fechar a extensão?')) return;
+            window.close();
+        }
+    }
+    
+    // ===== EVENTOS =====
+    btnModoMestre.onclick = ativarModoMestre;
+    btnConfirmarSenha.onclick = confirmarSenha;
+    btnCancelarSenha.onclick = cancelarSenha;
+    btnSair.onclick = sair;
+    
+    senhaMestreInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') confirmarSenha();
+    });
+    
+    btnPlayPause.onclick = togglePlayPause;
+    btnResetTempo.onclick = resetarTempo;
+    
+    btnHoraMais.onclick = () => ajustarTempo('horas', 1);
+    btnHoraMenos.onclick = () => ajustarTempo('horas', -1);
+    btnMinutoMais.onclick = () => ajustarTempo('minutos', 1);
+    btnMinutoMenos.onclick = () => ajustarTempo('minutos', -1);
+    btnSegundoMais.onclick = () => ajustarTempo('segundos', 1);
+    btnSegundoMenos.onclick = () => ajustarTempo('segundos', -1);
+    
+    senhaOverlay.addEventListener('click', (e) => {
+        if (e.target === senhaOverlay) cancelarSenha();
+    });
+    
+    // ===== INICIALIZAÇÃO =====
+    configurarInputs();
+    escutarEstadoTempo();
+    escutarChat();
+    atualizarDisplay();
+    
+    console.log('⏰ Contador de Tempo carregado!');
+    console.log('👁️ Todos visualizam o tempo.');
+    console.log('👑 Clique em "Modo Mestre" para controlar.');
+    console.log('🔑 Senha: mestre123@#');
+</script>
+
+</body>
+</html>
